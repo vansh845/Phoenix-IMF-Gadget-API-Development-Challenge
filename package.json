@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "tsc-watch --onSuccess \"node dist/index.js\" ",
+    "dev": "tsc-watch --onSuccess \"node dist/index.js\" --onFailure 'kill-port 3000'",
     "start": "node dist/index.js",
     "build": "tsc -p ."
   },
@@ -21,6 +21,7 @@
   "dependencies": {
     "@types/pg": "^8.11.11",
     "dotenv": "^16.4.7",
+    "kill-port": "^2.0.1",
     "pg": "^8.13.1",
     "uuid": "^11.0.5"
   }

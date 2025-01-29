@@ -1,10 +1,6 @@
-import express from 'express';
-import { client } from './db';
+import express, { Router } from 'express';
+import {connect} from './db';
 import {generatePercentage,generateUUID} from './utils/utils'
-
-const app = express();
-app.use(express.json())
-const port = 3000;
 
 enum status{
     "Available",
@@ -13,9 +9,11 @@ enum status{
     "Decommissioned"
 }
 
-client.connect().then((_)=>console.log("connected")).catch((err)=>console.log(err))
+const app = express();
+app.use(express.json())
+const port = 3000;
+const db = connect();
 
-const gadget = app.route("/gadgets")
 
 app.get('/gadgets',async (req,res)=>{
 
@@ -28,9 +26,13 @@ app.get('/gadgets',async (req,res)=>{
             q = q.concat(" WHERE status=$1")     
             fields.push(status);
         }
-        const result = await client.query(q,fields);
+
+        const result = await db.query(q,fields);
+        res.send(result.rows.map((row)=>{
+            row['mission_success_probability']=generatePercentage();
+            return row
+        }));
         
-        res.send(result.rows);
     }catch(err){
         res.send(err)
     }
@@ -40,8 +42,8 @@ app.post('/gadgets',async (req,res)=>{
     try{
         const name = req.body['name'];
         const codename = req.body['codename']
-        const q = "INSERT INTO gadgets(id,name,codename,status,mission_success_probability) VALUES($1,$2,$3,$4,$5) RETURNING *";
-        const response = await client.query(q,[generateUUID(),name,codename,'processing',generatePercentage()]);
+        const q = "INSERT INTO gadgets(id,name,codename,status) VALUES($1,$2,$3,$4) RETURNING *";
+        const response = await db.query(q,[generateUUID(),name,codename,'processing']);
         res.send(response.rows[0]);
     }catch(err){
         res.send(err);
@@ -71,7 +73,7 @@ app.patch('/gadgets',async (req,res)=>{
         query = query.concat(" WHERE id=$3");
         values.push(id);
 
-        client.query(query,values);
+        db.query(query,values);
         res.send("success");
 
     }catch(err){
@@ -82,15 +84,15 @@ app.patch('/gadgets',async (req,res)=>{
 
 app.delete('/gadgets',async (req,res)=>{
     try{
-        await client.query("BEGIN");
+        await db.query("BEGIN");
 
         const id = req.body['id'];
         let q = "UPDATE gadgets SET status=$1 WHERE id=$2";   
-        await client.query(q,['decommissioned',id]);
+        await db.query(q,['decommissioned',id]);
         q = "INSERT INTO decommissioned(gadget_id) VALUES($1);";
-        await client.query(q,[id]);
+        await db.query(q,[id]);
         res.send(JSON.stringify({"status":"done"}))
-        await client.query("COMMIT");
+        await db.query("COMMIT");
     }catch(err){
         res.send(err);
     }
@@ -108,4 +110,3 @@ app.post('/gadgets/:id/self-destruct',async (req,res)=>{
 app.listen(port, () => {
     console.log(`Server is running at 🚀 http://localhost:${port}`)
 })
-
