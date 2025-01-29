@@ -55,26 +55,29 @@ app.patch('/gadgets',async (req,res)=>{
         const id = req.body['id'];
         const name = req.body['name'];
         const status = req.body['status'];
+        console.log(name)
+        console.log(status)
 
         let query = "UPDATE gadgets SET ";
         const fields = []; 
         const values = [];
         
+        let count = 1;
         if(name){
-            fields.push("name=$1");
+            fields.push(`name=$${count++}`);
             values.push(name);
         }
         if(status){
-            fields.push("status=$2");
+            fields.push(`status=$${count++}`);
             values.push(status);
         }
 
         query = query.concat(fields.join(','));
-        query = query.concat(" WHERE id=$3 RETURNING *");
+        query = query.concat(` WHERE id=$${count++} RETURNING *`);
         values.push(id);
 
         const result = await db.query(query,values);
-        res.send(result.rows[0]);
+        res.send("updated");
 
     }catch(err){
         res.send(err);
@@ -91,13 +94,14 @@ app.delete('/gadgets',async (req,res)=>{
         await db.query(q,['decommissioned',id]);
         q = "INSERT INTO decommissioned(gadget_id) VALUES($1);";
         await db.query(q,[id]);
-        res.send(JSON.stringify({"status":"done"}))
         await db.query("COMMIT");
+        res.send("Deleted");
     }catch(err){
         res.send(err);
     }
 })
 
+// user will send confirmation code in body , simulate to match that and then delete gadget
 app.post('/gadgets/:id/self-destruct',async (req,res)=>{
     try{
         const {id} = req.params;
