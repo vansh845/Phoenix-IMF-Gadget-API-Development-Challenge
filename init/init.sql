@@ -1,5 +1,12 @@
 CREATE TABLE gadgets(
-    id SERIAL PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     name TEXT,
-    status TEXT
+    codename TEXT UNIQUE NOT NULL,
+    status TEXT,
+    mission_success_probability INTEGER
+);
+
+CREATE TABLE decommissioned(
+    gadget_id TEXT references gadgets,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
