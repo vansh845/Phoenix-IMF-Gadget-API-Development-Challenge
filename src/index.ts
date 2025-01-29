@@ -1,4 +1,4 @@
-import express, { Router } from 'express';
+import express from 'express';
 import {connect} from './db';
 import {generatePercentage,generateUUID} from './utils/utils'
 
@@ -30,7 +30,7 @@ app.get('/gadgets',async (req,res)=>{
         const result = await db.query(q,fields);
         res.send(result.rows.map((row)=>{
             row['mission_success_probability']=generatePercentage();
-            return row
+            return row;
         }));
         
     }catch(err){
@@ -70,11 +70,11 @@ app.patch('/gadgets',async (req,res)=>{
         }
 
         query = query.concat(fields.join(','));
-        query = query.concat(" WHERE id=$3");
+        query = query.concat(" WHERE id=$3 RETURNING *");
         values.push(id);
 
-        db.query(query,values);
-        res.send("success");
+        const result = await db.query(query,values);
+        res.send(result.rows[0]);
 
     }catch(err){
         res.send(err);
